@@ -16,20 +16,22 @@ i = pwd.find('7Be')
 # Import pyazr classes.
 from brick.azr import AZR
 
-def name():
-    return __name__
+input_filename = __name__ + '.azr'
+azr = AZR(input_filename)
+azr.ext_capture_file = 'output/intEC.dat'
+azr.root_directory = '/tmp/'
 
-
-input_filename = name() + '.azr'
 output_filenames = [
+    'AZUREOut_aa=1_R=1.out',
     'AZUREOut_aa=1_R=2.out',
     'AZUREOut_aa=1_R=3.out',
-    'AZUREOut_aa=1_TOTAL_CAPTURE.out',
-    'AZUREOut_aa=1_R=1.out'
+    'AZUREOut_aa=1_TOTAL_CAPTURE.out'
 ]
 
-# data files to which we will apply a normalization factor
-# (not really, we apply it to the theory calculations)
+# Capture Data
+# We will apply normalization factors to the capture data. That data is returned
+# in a single column, so we need to know what order they are in and how many
+# points are in each set.
 capture_data_files = [
     'Seattle_XS.dat',
     'Weizmann_XS.dat',
@@ -38,128 +40,76 @@ capture_data_files = [
     'ND_XS.dat',
     'ATOMKI_XS.dat',
 ]
-
-scatter_data_files = [
-    'cross_general_apr_lab_AZURE2_1820.dat',
-    'cross_general_apr_lab_AZURE2_1441.dat',
-    'cross_general_apr_lab_AZURE2_1196.dat',
-    'cross_general_apr_lab_AZURE2_873_2.dat',
-    'cross_general_apr_lab_AZURE2_711.dat',
-    'cross_general_apr_lab_AZURE2_586.dat',
-    'cross_general_apr_lab_AZURE2_432.dat',
-    'cross_general_apr_lab_AZURE2_291.dat',
-    'cross_general_apr_lab_AZURE2_239.dat',
-    'cross_general_apr_lab_AZURE2_873_1.dat'
+num_pts_capture = [
+    np.size(np.loadtxt('data/'+f)[:, 0]) for f in capture_data_files
 ]
+num_pts_total_capture = sum(num_pts_capture)
 
-ns_capture = [np.size(np.loadtxt('data/'+f)[:, 0]) for f in capture_data_files]
-ns_scatter = [np.size(np.loadtxt('data/'+f)[:, 0]) for f in scatter_data_files]
-ncapture = sum(ns_capture)
-nscatter = sum(ns_scatter)
-ns_data = ns_capture + [nscatter]
-n_data = sum(ns_capture) + nscatter
+# Scattering Data
+scatter_data_files = [
+    'cross_general_apr_lab_AZURE2_239.dat',
+    'cross_general_apr_lab_AZURE2_291.dat',
+    'cross_general_apr_lab_AZURE2_432.dat',
+    'cross_general_apr_lab_AZURE2_586.dat',
+    'cross_general_apr_lab_AZURE2_711.dat',
+    'cross_general_apr_lab_AZURE2_873_1.dat',
+    'cross_general_apr_lab_AZURE2_873_2.dat',
+    'cross_general_apr_lab_AZURE2_1196.dat',
+    'cross_general_apr_lab_AZURE2_1441.dat',
+    'cross_general_apr_lab_AZURE2_1820.dat'
+]
+num_pts_scatter = [np.size(np.loadtxt('data/'+f)[:, 0]) for f in scatter_data_files]
+num_pts_total_scatter = sum(num_pts_scatter)
 
-use_brune = True
-observable_only = False
-
-xs2_data = np.loadtxt('output/'+output_filenames[0]) # capture XS to GS
-xs3_data = np.loadtxt('output/'+output_filenames[1]) # capture XS to ES
-xs_data = np.loadtxt('output/'+output_filenames[2]) # total capture
-xs1_data = np.loadtxt('output/'+output_filenames[3]) # scattering data
-
+# Center-of-Mass (COM) Data
+xs1_data = np.loadtxt('output/'+output_filenames[0]) # scattering data
+xs2_data = np.loadtxt('output/'+output_filenames[1]) # capture XS to GS
+xs3_data = np.loadtxt('output/'+output_filenames[2]) # capture XS to ES
+xs_data = np.loadtxt('output/'+output_filenames[3]) # total capture
+## COM Scattering Data
 scatter = xs1_data[:, 5]
 # FIXED RELATIVE EXTRINSIC UNCERTAINTY ADDED IN QUADRATURE BELOW
 scatter_err = np.sqrt(xs1_data[:, 6]**2 + (0.018*scatter)**2)
-xs2 = xs2_data[:, 5]
-xs2_err = xs2_data[:, 6]
-xs3 = xs3_data[:, 5]
-xs3_err = xs3_data[:, 6]
+# COM Branching Ratio Data
+# James sent me this setup. He used a modified version of AZURE2 that computes
+# the branching ratio. So the data values in xs2_data and xs3_data both
+# correspond to the measured data. No need to divide xs3 by xs2.
+branching_ratio = xs2_data[:, 5]
+branching_ratio_err = xs2_data[:, 6]
 
-br = xs2
-br_err = xs3_err
-
-x = np.hstack((xs2_data[:, 0], xs_data[:, 0], xs1_data[:, 0]))
-y = np.hstack((br, xs_data[:, 5], scatter))
-dy = np.hstack((br_err, xs_data[:, 6], scatter_err))
+x = np.hstack((xs2_data[:, 0], xs_data[:, 0], xs1_data[:, 0])) # all energies
+y = np.hstack((branching_ratio, xs_data[:, 5], scatter)) # all observables
+dy = np.hstack((branching_ratio_err, xs_data[:, 6], scatter_err)) # all uncertainties
 
 nbr = xs2_data.shape[0]
 nxs = xs_data.shape[0]
-nscatter1 = xs1_data.shape[0]
 
-assert nscatter == nscatter1, f'''
-Number of scattering ({nscatter}, {nscatter1}) data points is inconsistent.
+assert num_pts_total_scatter == xs1_data.shape[0], f'''
+Number of scattering ({num_pts_total_scatter}, {xs1_data.shape[0]}) data points is inconsistent.
 '''
 
-azr = AZR(input_filename)
-azr.ext_capture_file = 'output/intEC.dat'
-azr.root_directory = '/tmp/'
-
-rpar_labels = [p.label for p in azr.parameters]
-
-f_labels = [
-    '$f_{Seattle}$', '$f_{Weizmann}$', '$f_{Luna}$', '$f_{Erna}$', '$f_{ND}$', '$f_{Atomki}$',
-    '$f_{1820}$', '$f_{1441}$', '$f_{1196}$', '$f_{873-2}$', '$f_{711}$',
-    '$f_{586}$', '$f_{432}$', '$f_{291}$', '$f_{239}$', '$f_{873-1}$',
-    r'$\Delta_{\rm{E, Paneru}}$'
-]
-
-labels = rpar_labels + f_labels
-
-nrpar = len(rpar_labels)
+nrpar = len(azr.parameters)
 nf_capture = len(capture_data_files)
 nf_scatter = len(scatter_data_files)
-ndim = nrpar + nf_capture + nf_scatter + 1
-
-assert ndim == len(labels), f'Number of sampled parameters does not match the \
-number of labels: {ndim} ≠ {len(labels)}'
+ndim = nrpar + nf_capture + nf_scatter
 
 def map_uncertainty(theta, ns):
-    c = np.array([])
-    for (theta_i, n) in zip(theta, ns):
-        c = np.hstack((c, theta_i*np.ones(n)))
-    return c
+    return np.hstack([theta_i*np.ones(n) for (theta_i, n) in zip(theta, ns)])
 
 
-paneru_indices = np.arange(14, 24)
-
+# Calculate the branching ratios, total capture cross sections, and scattering
+# differential cross sections at point theta.
 def calculate(theta):
-    fj_capture = map_uncertainty(
-        theta[nrpar:nrpar+nf_capture], ns_capture
-    )
-    fj_scatter = map_uncertainty(
-        theta[nrpar+nf_capture:nrpar+nf_capture+nf_scatter], ns_scatter
-    )
-    paneru_shift = theta[-1]
-
-    shifts = paneru_shift * np.ones(10)
-    shifted_data = [(i, azr.config.data.segments[i].shift_energies(shift)) for
-        (i, shift) in zip(paneru_indices, shifts)]
-
-    mu = azr.predict(theta, mod_data=shifted_data)
-    paneru, capture_gs, capture_es, capture_tot = mu
-
+    paneru, capture_gs, capture_es, capture_tot = azr.predict(theta)
     bratio = capture_es.xs_com_fit/capture_gs.xs_com_fit
     sigma_tot = capture_tot.xs_com_fit
     scatter_dxs = paneru.xs_com_fit
-    data_norm = np.hstack((fj_capture*sigma_tot, fj_scatter*scatter_dxs))
-    return np.hstack((bratio, data_norm))
+    return np.hstack((bratio, sigma_tot, scatter_dxs))
 
-
-# starting positions
-initial_capture_norms = np.ones(nf_capture)
-initial_scatter_norms = np.ones(nf_scatter)
-initial_values = azr.config.get_input_values().copy()
-
-starting_positions = np.hstack(
-    (initial_values, initial_capture_norms, initial_scatter_norms, 1e-3)
-)
-
-assert ndim == np.size(starting_positions), f'Number of sampled parameters \
-does not match the number of starting parameters: \
-{ndim} ≠ {np.size(starting_positions)}'
 
 # starting position distributions
-p0_dist = [stats.norm(sp, np.abs(sp)/100) for sp in starting_positions]
+p0_dist = [stats.norm(sp, np.abs(sp)/100) for sp in
+        azr.config.get_input_values()]
 
 def my_truncnorm(mu, sigma, lower, upper):
     return stats.truncnorm((lower - mu) / sigma, (upper - mu) / sigma, loc=mu, scale=sigma)
@@ -225,36 +175,9 @@ priors = [
     f_erna_prior,
     f_nd_prior,
     f_atomki_prior
-] + som_priors + [Delta_E_paneru_prior]
+] + som_priors
 
-assert len(priors) == ndim, 'Number of priors does not match number of sampled parameters.'
-
-def logpi(theta):
-    return np.sum([prior.logpdf(theta_i) for (prior, theta_i) in zip(priors, theta)])
-
-
-def logl(mu):
-    return np.sum(-np.log(const.M_SQRT2PI*dy) - 0.5*((y-mu)/dy)**2)
-
-
+assert len(priors) == ndim, f'''
+Number of priors, ({len(priors)}), does not match number of sampled parameters,
+({ndim}).
 '''
-    log(Posterior)
-'''
-
-# Make sure this matches with what log_posterior returns.
-blobs_dtype = [('loglikelihood', float)]
-
-def log_posterior(theta):
-    logprior = logpi(theta)
-    if logprior == -np.inf:
-        return -np.inf, -np.inf
-
-    mu = calculate(theta)
-    loglikelihood = logl(mu)
-    if np.isnan(loglikelihood):
-        return -np.inf, -np.inf
-
-    fj_capture = theta[nrpar:nrpar+nf_capture]
-    fj_scatter = theta[nrpar+nf_capture:]
-    
-    return loglikelihood + logprior, loglikelihood

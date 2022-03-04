@@ -64,16 +64,16 @@ none                                                                            
 1              1              -1             0              10             0              180            3              1              0              8              data/ND_XS.dat
 1              1              -1             0              10             0              180            3              1              0              6              data/ATOMKI_XS.dat
 0              1              1              0              10             0              77.8534        1              1              0              5              data/barnard_corrected_forward_lab.dat
-1              1              1              0              10             0              180            1              1              0              8.9            data/cross_general_apr_lab_AZURE2_1820.dat
-1              1              1              0              10             0              180            1              1              0              6.3            data/cross_general_apr_lab_AZURE2_1441.dat
-1              1              1              0              4              20             180            1              1              0              7.7            data/cross_general_apr_lab_AZURE2_1196.dat
-1              1              1              0              4              20             180            1              1              0              6.2            data/cross_general_apr_lab_AZURE2_873_2.dat
-1              1              1              0              4              20             180            1              1              0              4.5            data/cross_general_apr_lab_AZURE2_711.dat
-1              1              1              0              4              0              180            1              1              0              5.7            data/cross_general_apr_lab_AZURE2_586.dat
-1              1              1              0              4              0              180            1              1              0              9.8            data/cross_general_apr_lab_AZURE2_432.dat
-1              1              1              0              4              0              180            1              1              0              4.6            data/cross_general_apr_lab_AZURE2_291.dat
 1              1              1              0              4              0              180            1              1              0              6.4            data/cross_general_apr_lab_AZURE2_239.dat
+1              1              1              0              4              0              180            1              1              0              4.6            data/cross_general_apr_lab_AZURE2_291.dat
+1              1              1              0              4              0              180            1              1              0              9.8            data/cross_general_apr_lab_AZURE2_432.dat
+1              1              1              0              4              0              180            1              1              0              5.7            data/cross_general_apr_lab_AZURE2_586.dat
+1              1              1              0              4              20             180            1              1              0              4.5            data/cross_general_apr_lab_AZURE2_711.dat
 1              1              1              0              4              0              180            1              1              0              6.9            data/cross_general_apr_lab_AZURE2_873_1.dat
+1              1              1              0              4              20             180            1              1              0              6.2            data/cross_general_apr_lab_AZURE2_873_2.dat
+1              1              1              0              4              20             180            1              1              0              7.7            data/cross_general_apr_lab_AZURE2_1196.dat
+1              1              1              0              10             0              180            1              1              0              6.3            data/cross_general_apr_lab_AZURE2_1441.dat
+1              1              1              0              10             0              180            1              1              0              8.9            data/cross_general_apr_lab_AZURE2_1820.dat
 </segmentsData>
 <segmentsTest>
 0              1              1              0.001          7              0.1            0              0              0              2              0.5            0
