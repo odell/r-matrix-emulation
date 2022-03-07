@@ -145,8 +145,6 @@ f_erna_prior = my_truncnorm(1, 0.05, 0, np.inf)
 f_nd_prior = my_truncnorm(1, 0.08, 0, np.inf)
 f_atomki_prior = my_truncnorm(1, 0.06, 0, np.inf)
 
-Delta_E_paneru_prior = stats.norm(0, 3e-3)
-
 # Add 1% (in quadrature) to systematic uncertainty to account for beam-position
 # uncertainty.
 som_syst = np.sqrt(const.som_syst**2 + 0.01**2)
