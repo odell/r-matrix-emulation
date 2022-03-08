@@ -1,20 +1,15 @@
 '''
-    model
-    - 5/2+ excited state width
-    + SONIK energy shift
+    R-matrix model
+    Analyzing 3He(alpha, gamma) data
+        * capture
+        * scattering (SONIK)
 '''
 
-import os
-import sys
 import numpy as np
 from scipy import stats
-import constants as const
-
-pwd = os.getcwd()
-i = pwd.find('7Be')
-
-# Import pyazr classes.
 from brick.azr import AZR
+
+import constants as const
 
 input_filename = __name__ + '.azr'
 azr = AZR(input_filename)
@@ -66,10 +61,7 @@ xs1_data = np.loadtxt('output/'+output_filenames[0]) # scattering data
 xs2_data = np.loadtxt('output/'+output_filenames[1]) # capture XS to GS
 xs3_data = np.loadtxt('output/'+output_filenames[2]) # capture XS to ES
 xs_data = np.loadtxt('output/'+output_filenames[3]) # total capture
-## COM Scattering Data
-scatter = xs1_data[:, 5]
-# FIXED RELATIVE EXTRINSIC UNCERTAINTY ADDED IN QUADRATURE BELOW
-scatter_err = np.sqrt(xs1_data[:, 6]**2 + (0.018*scatter)**2)
+
 # COM Branching Ratio Data
 # James sent me this setup. He used a modified version of AZURE2 that computes
 # the branching ratio. So the data values in xs2_data and xs3_data both
@@ -77,9 +69,30 @@ scatter_err = np.sqrt(xs1_data[:, 6]**2 + (0.018*scatter)**2)
 branching_ratio = xs2_data[:, 5]
 branching_ratio_err = xs2_data[:, 6]
 
-x = np.hstack((xs2_data[:, 0], xs_data[:, 0], xs1_data[:, 0])) # all energies
-y = np.hstack((branching_ratio, xs_data[:, 5], scatter)) # all observables
-dy = np.hstack((branching_ratio_err, xs_data[:, 6], scatter_err)) # all uncertainties
+## COM Scattering 
+def rutherford(energy, angle):
+    '''
+    Rutherford differential cross section
+    '''
+    return (4*const.ALPHA*const.HBARC / (4*energy*np.sin(angle/2*np.pi/180)**2))**2 / 100
+
+
+energies_scatter = xs1_data[:, 0]
+angles_scatter = xs1_data[:, 2]
+scatter_rutherford = np.array(
+    [rutherford(ei, ai) for (ei, ai) in zip(energies_scatter, angles_scatter)]
+)
+scatter = xs1_data[:, 5] / scatter_rutherford
+# FIXED RELATIVE EXTRINSIC UNCERTAINTY ADDED IN QUADRATURE BELOW
+scatter_err = np.sqrt(xs1_data[:, 6]**2 + (0.018*scatter)**2) / scatter_rutherford
+
+# All of the energies (COM).
+x = np.hstack((xs2_data[:, 0], xs_data[:, 0], xs1_data[:, 0]))
+# All of the observables: branching ratios, total capture S factor, differential
+# cross sections.
+y = np.hstack((branching_ratio, xs_data[:, 7], scatter))
+# All of the associated uncertainties reported with the data.
+dy = np.hstack((branching_ratio_err, xs_data[:, 8], scatter_err))
 
 nbr = xs2_data.shape[0]
 nxs = xs_data.shape[0]
@@ -102,80 +115,12 @@ def map_uncertainty(theta, ns):
 def calculate(theta):
     paneru, capture_gs, capture_es, capture_tot = azr.predict(theta)
     bratio = capture_es.xs_com_fit/capture_gs.xs_com_fit
-    sigma_tot = capture_tot.xs_com_fit
-    scatter_dxs = paneru.xs_com_fit
-    return np.hstack((bratio, sigma_tot, scatter_dxs))
+    S_tot = capture_tot.sf_com_fit
+    scatter_dxs = paneru.xs_com_fit / scatter_rutherford
+    return np.hstack((bratio, S_tot, scatter_dxs))
 
 
 # starting position distributions
 p0_dist = [stats.norm(sp, np.abs(sp)/100) for sp in
         azr.config.get_input_values()]
 
-def my_truncnorm(mu, sigma, lower, upper):
-    return stats.truncnorm((lower - mu) / sigma, (upper - mu) / sigma, loc=mu, scale=sigma)
-
-
-# priors
-anc429_prior = stats.uniform(1, 4)
-Ga_1hm_prior = stats.uniform(-200e6, 400e6)
-
-Ga_1hp_prior = stats.uniform(0, 100e6)
-Gg0_1hp_prior = stats.uniform(0, 10e6)
-Gg429_1hp_prior = stats.uniform(-10e3, 20e3)
-
-anc0_prior = stats.uniform(1, 4)
-Ga_3hm_prior = stats.uniform(-100e6, 200e6)
-
-Ga_3hp_prior = stats.uniform(0, 100e6)
-Gg0_3hp_prior = stats.uniform(-10e3, 20e3)
-Gg429_3hp_prior = stats.uniform(-3e3, 6e3)
-
-Ga_5hm_prior = stats.uniform(0, 100e6)
-Ga_5hp_prior = stats.uniform(0, 100e6)
-Gg0_5hp_prior = stats.uniform(-100e6, 200e6)
-
-Ex_7hm_prior = stats.uniform(1, 9)
-Ga_7hm_prior = stats.uniform(0, 10e6)
-Gg0_7hm_prior = stats.uniform(0, 1e3)
-
-f_seattle_prior = my_truncnorm(1, 0.03, 0, np.inf)
-f_weizmann_prior = my_truncnorm(1, 0.037, 0, np.inf)
-f_luna_prior = my_truncnorm(1, 0.032, 0, np.inf)
-f_erna_prior = my_truncnorm(1, 0.05, 0, np.inf)
-f_nd_prior = my_truncnorm(1, 0.08, 0, np.inf)
-f_atomki_prior = my_truncnorm(1, 0.06, 0, np.inf)
-
-# Add 1% (in quadrature) to systematic uncertainty to account for beam-position
-# uncertainty.
-som_syst = np.sqrt(const.som_syst**2 + 0.01**2)
-som_priors = [my_truncnorm(1, syst, 0, np.inf) for syst in som_syst]
-
-priors = [
-    anc429_prior,
-    Ga_1hm_prior,
-    Ga_1hp_prior,
-    Gg0_1hp_prior,
-    Gg429_1hp_prior,
-    anc0_prior,
-    Ga_3hm_prior,
-    Ga_3hp_prior,
-    Gg0_3hp_prior,
-    Gg429_3hp_prior,
-    Ga_5hm_prior,
-    Ga_5hp_prior,
-    Gg0_5hp_prior,
-    Ex_7hm_prior,
-    Ga_7hm_prior,
-    Gg0_7hm_prior,
-    f_seattle_prior,
-    f_weizmann_prior,
-    f_luna_prior,
-    f_erna_prior,
-    f_nd_prior,
-    f_atomki_prior
-] + som_priors
-
-assert len(priors) == ndim, f'''
-Number of priors, ({len(priors)}), does not match number of sampled parameters,
-({ndim}).
-'''

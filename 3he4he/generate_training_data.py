@@ -5,7 +5,7 @@ from scipy import stats
 import os
 from multiprocessing import Pool
 
-import model as model
+import model
 
 sys.path.append('/home/odell/7Be')
 import run

@@ -6,6 +6,7 @@ MASS_HE4 = 4.0026*MEV_AMU # MeV
 MU = MASS_HE3*MASS_HE4 / (MASS_HE3 + MASS_HE4) # MeV
 HBARC = 197.32696310 # MeV•fm
 M_SQRT2PI = np.sqrt(2*np.pi)
+ALPHA = 0.0072973525693
 
 capture_syst = [
     0.03,
