@@ -42,16 +42,16 @@ num_pts_total_capture = sum(num_pts_capture)
 
 # Scattering Data
 scatter_data_files = [
-    'cross_general_apr_lab_AZURE2_239.dat',
-    'cross_general_apr_lab_AZURE2_291.dat',
-    'cross_general_apr_lab_AZURE2_432.dat',
-    'cross_general_apr_lab_AZURE2_586.dat',
-    'cross_general_apr_lab_AZURE2_711.dat',
-    'cross_general_apr_lab_AZURE2_873_1.dat',
-    'cross_general_apr_lab_AZURE2_873_2.dat',
-    'cross_general_apr_lab_AZURE2_1196.dat',
-    'cross_general_apr_lab_AZURE2_1441.dat',
-    'cross_general_apr_lab_AZURE2_1820.dat'
+    'sonik_inflated_239.dat',
+    'sonik_inflated_291.dat',
+    'sonik_inflated_432.dat',
+    'sonik_inflated_586.dat',
+    'sonik_inflated_711.dat',
+    'sonik_inflated_873_1.dat',
+    'sonik_inflated_873_2.dat',
+    'sonik_inflated_1196.dat',
+    'sonik_inflated_1441.dat',
+    'sonik_inflated_1820.dat'
 ]
 num_pts_scatter = [np.size(np.loadtxt('data/'+f)[:, 0]) for f in scatter_data_files]
 num_pts_total_scatter = sum(num_pts_scatter)
@@ -83,8 +83,8 @@ scatter_rutherford = np.array(
     [rutherford(ei, ai) for (ei, ai) in zip(energies_scatter, angles_scatter)]
 )
 scatter = xs1_data[:, 5] / scatter_rutherford
-# FIXED RELATIVE EXTRINSIC UNCERTAINTY ADDED IN QUADRATURE BELOW
-scatter_err = np.sqrt(xs1_data[:, 6]**2 + (0.018*scatter)**2) / scatter_rutherford
+# FIXED RELATIVE EXTRINSIC UNCERTAINTY ADDED IN "sonik_inflated_*.dat" FILES
+scatter_err = xs1_data[:, 6]**2 / scatter_rutherford
 
 # All of the energies (COM).
 x = np.hstack((xs2_data[:, 0], xs_data[:, 0], xs1_data[:, 0]))
@@ -119,6 +119,27 @@ def calculate(theta):
     scatter_dxs = paneru.xs_com_fit / scatter_rutherford
     return np.hstack((bratio, S_tot, scatter_dxs))
 
+
+def calculate_norm(theta):
+    '''
+    Apply normalization factors to theory predictions (total capture and
+    scattering).
+    '''
+    fj_capture = map_uncertainty(
+        theta[nrpar:nrpar+nf_capture], num_pts_capture
+    )
+    fj_scatter = map_uncertainty(
+        theta[nrpar+nf_capture:nrpar+nf_capture+nf_scatter], num_pts_scatter
+    )
+
+    mu = azr.predict(theta)
+    paneru, capture_gs, capture_es, capture_tot = mu
+
+    bratio = capture_es.xs_com_fit/capture_gs.xs_com_fit
+    S_tot = capture_tot.sf_com_fit
+    scatter_dxs = paneru.xs_com_fit /scatter_rutherford
+    data_norm = np.hstack((fj_capture*S_tot, fj_scatter*scatter_dxs))
+    return np.hstack((bratio, data_norm))
 
 # starting position distributions
 p0_dist = [stats.norm(sp, np.abs(sp)/100) for sp in
