@@ -18,7 +18,7 @@ import model
 # Command-line arguments
 epsilon = float(sys.argv[1])
 ntrain = int(sys.argv[2])
-emu_id = f'eps_{epsilon:.2f}_ntrain_{ntrain}'
+emu_id = f'eps_{epsilon:.4e}_ntrain_{ntrain}'
 
 plt.style.use('science')
 gr = 4/3

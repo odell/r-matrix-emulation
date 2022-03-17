@@ -2,9 +2,7 @@
 Conducts MCMC analysis using a previously trained PCGPwM emulator.
 '''
 
-import os
 import sys
-from multiprocessing import Pool
 
 import numpy as np
 from scipy import stats
@@ -17,9 +15,7 @@ import priors
 
 epsilon = float(sys.argv[1])
 ntrain = int(sys.argv[2])
-emu_id = f'eps_{epsilon:.2f}_ntrain_{ntrain}'
-
-os.environ['OMP_NUM_THREADS'] = '1'
+emu_id = f'eps_{epsilon:.4e}_ntrain_{ntrain}'
 
 n1 = model.nbr
 n2 = model.nxs
@@ -84,8 +80,7 @@ p0 = np.array(
 backend = emcee.backends.HDFBackend('emulators/backends/' + emu_id + '.h5')
 backend.reset(nw, nd)
 moves = [(emcee.moves.DEMove(), 0.2), (emcee.moves.DESnookerMove(), 0.8)]
-pool = Pool(processes=16)
 sampler = emcee.EnsembleSampler(nw, nd, bayes_model.ln_posterior, moves=moves,
-                                backend=backend, pool=pool)
+                                backend=backend)
 
 state = sampler.run_mcmc(p0, 1000, thin_by=50, tune=True, progress=True)
