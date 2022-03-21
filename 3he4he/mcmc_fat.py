@@ -15,7 +15,10 @@ import priors
 
 epsilon = float(sys.argv[1])
 ntrain = int(sys.argv[2])
-emu_id = f'eps_{epsilon:.4e}_ntrain_{ntrain}_fat_0.3'
+fat_frac = float(sys.argv[3])
+
+fat_id = f'fat_{fat_frac:.1f}'
+emu_id = f'eps_{epsilon:.4e}_ntrain_{ntrain}' + '_' + fat_id
 
 n1 = model.nbr
 n2 = model.nxs
