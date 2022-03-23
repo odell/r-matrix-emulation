@@ -56,8 +56,9 @@ class Model:
         var_tot = (f*model.dy)**2 + var
         var_tot_no_norm = model.dy**2 + var
 
-        return np.sum(-np.log(np.sqrt(2*np.pi*var_tot_no_norm)) - \
-            0.5*(f*model.y - mu)**2 / var_tot) 
+        return np.sum(
+            -np.log(np.sqrt(2*np.pi*var_tot_no_norm)) - 0.5*(f*model.y - mu)**2 / var_tot
+        ) 
 
 
     def ln_posterior(self, theta):
