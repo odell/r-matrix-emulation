@@ -84,7 +84,7 @@ scatter_rutherford = np.array(
 )
 scatter = xs1_data[:, 5] / scatter_rutherford
 # FIXED RELATIVE EXTRINSIC UNCERTAINTY ADDED IN "sonik_inflated_*.dat" FILES
-scatter_err = xs1_data[:, 6]**2 / scatter_rutherford
+scatter_err = xs1_data[:, 6] / scatter_rutherford
 
 # All of the energies (COM).
 x = np.hstack((xs2_data[:, 0], xs_data[:, 0], xs1_data[:, 0]))
