@@ -1,4 +1,5 @@
 import numpy as np
+from scipy import stats
 
 import model
 import priors
@@ -66,3 +67,55 @@ class Model:
         if lnpi == -np.inf:
             return -np.inf
         return lnpi + self.ln_likelihood(theta)
+
+
+class Model1(Model):
+    '''
+    Requires that the GP variance is smaller than the experimental uncertainty.
+    '''
+    def ln_likelihood(self, theta, include_gp_var=True):
+        theta_R = theta[:model.nrpar]
+        mu, var = self.gp_predict(theta_R)
+
+        if np.sum(np.sqrt(var) - model.dy) > 0:
+            return -np.inf
+
+        f = self.normalization_factors(theta)
+
+        factor = self.likelihood_normalization(
+            model.dy**2 + (var if include_gp_var else 0)
+        )
+        chisq = self.chi_squared(f, mu,
+            (f*model.dy)**2 + (var if include_gp_var else 0)
+        )
+
+        return factor + chisq
+
+
+GP_SIGMA_PRIORS = [stats.norm(0, sigma) for sigma in model.dy]
+
+def ln_prior_gp_var(sigma_gp):
+    return np.sum([pi.logpdf(theta) for (pi, theta) in zip(GP_SIGMA_PRIORS,
+        sigma_gp)])
+
+
+class Model2(Model):
+    '''
+    Sets priors on the GP variances at each input location.
+    '''
+    def ln_likelihood(self, theta, include_gp_var=True):
+        theta_R = theta[:model.nrpar]
+        mu, var = self.gp_predict(theta_R)
+
+        gp_var_prior = ln_prior_gp_var(np.sqrt(var))
+
+        f = self.normalization_factors(theta)
+
+        factor = self.likelihood_normalization(
+            model.dy**2 + (var if include_gp_var else 0)
+        )
+        chisq = self.chi_squared(f, mu,
+            (f*model.dy)**2 + (var if include_gp_var else 0)
+        )
+
+        return factor + chisq + gp_var_prior
