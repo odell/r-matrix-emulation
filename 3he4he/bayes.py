@@ -62,11 +62,11 @@ class Model:
         return factor + chisq
 
 
-    def ln_posterior(self, theta):
+    def ln_posterior(self, theta, include_gp_var=True):
         lnpi = ln_prior(theta)
         if lnpi == -np.inf:
             return -np.inf
-        return lnpi + self.ln_likelihood(theta)
+        return lnpi + self.ln_likelihood(theta, include_gp_var=include_gp_var)
 
 
 class Model1(Model):

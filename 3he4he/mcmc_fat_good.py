@@ -24,7 +24,7 @@ emu_id = f'eps_{epsilon:.4e}_ntrain_{ntrain}' + '_' + fat_id
 n1 = model.nbr
 n2 = model.nxs
 
-with open('emulators/emu_' + emu_id + '.pkl', 'rb') as o:
+with open('emulators/emu_good_' + emu_id + '.pkl', 'rb') as o:
     emu = pickle.load(o)
 
 

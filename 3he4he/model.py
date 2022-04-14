@@ -88,6 +88,7 @@ scatter_err = xs1_data[:, 6] / scatter_rutherford
 
 # All of the energies (COM).
 x = np.hstack((xs2_data[:, 0], xs_data[:, 0], xs1_data[:, 0]))
+angles = np.hstack((xs2_data[:, 2], xs_data[:, 2], xs1_data[:, 2]))
 # All of the observables: branching ratios, total capture S factor, differential
 # cross sections.
 y = np.hstack((branching_ratio, xs_data[:, 7], scatter))
