@@ -19,12 +19,12 @@ ntrain = int(sys.argv[2])
 fat_frac = float(sys.argv[3])
 
 fat_id = f'fat_{fat_frac:.1f}'
-emu_id = f'eps_{epsilon:.4e}_ntrain_{ntrain}' + '_' + fat_id
+emu_id = f'good_eps_{epsilon:.4e}_ntrain_{ntrain}' + '_' + fat_id
 
 n1 = model.nbr
 n2 = model.nxs
 
-with open('emulators/emu_good_' + emu_id + '.pkl', 'rb') as o:
+with open('emulators/emu_' + emu_id + '.pkl', 'rb') as o:
     emu = pickle.load(o)
 
 
@@ -42,7 +42,7 @@ p0 = np.array(
     [stats.norm(theta_star, 0.01*np.abs(theta_star)).rvs() for _ in range(nw)]
 )
 
-backend = emcee.backends.HDFBackend('emulators/backends/' + emu_id + '_no_gp_var.h5')
+backend = emcee.backends.HDFBackend('emulators/backends/' + emu_id + '.h5')
 backend.reset(nw, nd)
 moves = [(emcee.moves.DEMove(), 0.2), (emcee.moves.DESnookerMove(), 0.8)]
 sampler = emcee.EnsembleSampler(nw, nd, bayes_model.ln_posterior, moves=moves,
