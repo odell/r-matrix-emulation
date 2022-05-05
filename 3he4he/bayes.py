@@ -119,3 +119,91 @@ class Model2(Model):
         )
 
         return factor + chisq + gp_var_prior
+
+
+class Model3(Model):
+    '''
+    Uses the full covariance matrix from the emulator, not just the diagonal.
+    '''
+    def gp_predict(self, theta):
+        p = self.emu.predict(theta=theta)
+        mu = p.mean().T[0]
+        cov = p.covx()[:, 0, :]
+        return mu, cov
+    
+    
+    def likelihood_normalization(self, cov):
+        return -np.log(np.sqrt(2*np.pi)) - 0.5*np.linalg.slogdet(cov)[1]
+
+
+    def chi_squared(self, f, mu, cov):
+        diff = f*model.y - mu
+        return -0.5 * (diff @ np.linalg.inv(cov) @ diff)
+
+
+    def ln_likelihood(self, theta, include_gp_cov=True):
+        theta_R = theta[:model.nrpar]
+
+        f = self.normalization_factors(theta)
+        
+        mu, cov = self.gp_predict(theta_R)
+
+        factor = self.likelihood_normalization(
+            np.diag(model.dy**2) + (cov if include_gp_cov else 0)
+        )
+        chisq = self.chi_squared(f, mu,
+            np.diag((f*model.dy)**2) + (cov if include_gp_cov else 0)
+        )
+
+        return factor + chisq
+
+
+    def ln_posterior(self, theta, include_gp_cov=True):
+        lnpi = ln_prior(theta)
+        if lnpi == -np.inf:
+            return -np.inf
+        return lnpi + self.ln_likelihood(theta, include_gp_cov=include_gp_cov)
+
+
+import pickle
+
+class Model4(Model3):
+    '''
+    Modifies the data by applying the inverse of the median normalization
+    factors obtained from the CS analysis.
+    Does *not* sample normalization factors.
+    '''
+    def __init__(self, emu):
+        self.emu = emu
+
+        with open('/spare/odell/7Be/CP/samples/model_1_2021-08-06-02-55-37.pkl', 'rb') as f:
+            run = pickle.load(f)
+        cs_flat_chain = run.get_flat_chain()
+        f_cs = np.median(cs_flat_chain[:, 16:], axis=0)
+        inv_f = 1/self.normalization_factors(np.hstack((np.ones(16), f_cs)))
+        self.y = inv_f * model.y
+        self.dy = inv_f * model.dy
+
+
+    def chi_squared(self, f, mu, cov):
+        diff = self.y - mu
+        return -0.5 * (diff @ np.linalg.inv(cov) @ diff)
+
+
+    def ln_likelihood(self, theta, include_gp_cov=True):
+        mu, cov = self.gp_predict(theta)
+        factor = self.likelihood_normalization(
+            np.diag(self.dy**2) + (cov if include_gp_cov else 0)
+        )
+        chisq = self.chi_squared(None, mu,
+            np.diag(self.dy**2) + (cov if include_gp_cov else 0)
+        )
+        return factor + chisq
+
+
+    def ln_posterior(self, theta, include_gp_cov=True):
+        lnpi = ln_prior(theta)
+        if lnpi == -np.inf:
+            return -np.inf
+        return lnpi + self.ln_likelihood(theta, include_gp_cov=include_gp_cov)
+

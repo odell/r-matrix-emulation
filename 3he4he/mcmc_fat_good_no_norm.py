@@ -1,5 +1,7 @@
 '''
 Conducts MCMC analysis using a previously trained PCGPwM emulator.
+Does not sample normalization factors. Includes the inverse of the median
+normalization factors from the CS analysis.
 '''
 
 import sys
@@ -12,7 +14,7 @@ import dill as pickle
 
 import model
 import priors
-from bayes import Model3
+from bayes import Model4
 
 emu_filename = sys.argv[1]
 
@@ -23,13 +25,9 @@ with open(emu_filename, 'rb') as o:
     emu = pickle.load(o)
 
 
-def ln_prior(theta):
-    return np.sum([p.logpdf(t) for (p, t) in zip(priors.priors, theta)])
+bayes_model = Model4(emu)
 
-
-bayes_model = Model3(emu)
-
-theta_star = np.load('datfiles/theta_star.npy')[:-1]
+theta_star = np.load('datfiles/theta_star.npy')[:16]
 nd = theta_star.size
 nw = 2*nd
 
@@ -40,7 +38,7 @@ p0 = np.array(
 f = emu_filename
 i = f.find('/') + 1
 j = f.find('.pkl')
-backend_filename = f[:i] + 'backends/' + f[i:j] + '.h5'
+backend_filename = f[:i] + 'backends/' + f[i:j] + '_no_norm.h5'
 print(backend_filename)
 backend = emcee.backends.HDFBackend(backend_filename)
 backend.reset(nw, nd)
