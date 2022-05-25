@@ -167,6 +167,11 @@ class Model3(Model):
 
 import pickle
 
+def chi_squared(y, mu, cov):
+    diff = y - mu
+    return -0.5 * (diff @ np.linalg.inv(cov) @ diff)
+
+
 class Model4(Model3):
     '''
     Modifies the data by applying the inverse of the median normalization
@@ -175,19 +180,15 @@ class Model4(Model3):
     '''
     def __init__(self, emu):
         self.emu = emu
-
+ 
         with open('/spare/odell/7Be/CP/samples/model_1_2021-08-06-02-55-37.pkl', 'rb') as f:
             run = pickle.load(f)
         cs_flat_chain = run.get_flat_chain()
-        f_cs = np.median(cs_flat_chain[:, 16:], axis=0)
+        f_cs = np.median(cs_flat_chain[:, 16:32], axis=0)
         inv_f = 1/self.normalization_factors(np.hstack((np.ones(16), f_cs)))
         self.y = inv_f * model.y
-        self.dy = inv_f * model.dy
-
-
-    def chi_squared(self, f, mu, cov):
-        diff = self.y - mu
-        return -0.5 * (diff @ np.linalg.inv(cov) @ diff)
+        self.dy = np.copy(model.dy)
+        self.fdy = inv_f * model.dy
 
 
     def ln_likelihood(self, theta, include_gp_cov=True):
@@ -195,8 +196,8 @@ class Model4(Model3):
         factor = self.likelihood_normalization(
             np.diag(self.dy**2) + (cov if include_gp_cov else 0)
         )
-        chisq = self.chi_squared(None, mu,
-            np.diag(self.dy**2) + (cov if include_gp_cov else 0)
+        chisq = chi_squared(self.y, mu,
+            np.diag(self.fdy**2) + (cov if include_gp_cov else 0)
         )
         return factor + chisq
 
@@ -207,3 +208,23 @@ class Model4(Model3):
             return -np.inf
         return lnpi + self.ln_likelihood(theta, include_gp_cov=include_gp_cov)
 
+
+class Model5(Model4):
+    '''
+    Uses priors that represent the CS posterior on which the emulator was
+    trained.
+    '''
+    design_chain = np.load('datfiles/fat_0.3_posterior_chain.npy')
+    priors = [stats.gaussian_kde(x) for x in design_chain.T]
+
+    def ln_prior(self, theta):
+        return np.sum([pi.logpdf(x) for (pi, x) in zip(self.priors,
+            self.design_chain)])
+
+
+    def ln_posterior(self, theta):
+        lnpi = self.ln_prior(theta)
+        if lnpi == -np.inf:
+            return -np.inf
+        else:
+            return lnpi + self.ln_likelihood(theta)

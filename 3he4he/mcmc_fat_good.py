@@ -40,7 +40,7 @@ p0 = np.array(
 f = emu_filename
 i = f.find('/') + 1
 j = f.find('.pkl')
-backend_filename = f[:i] + 'backends/' + f[i:j] + '.h5'
+backend_filename = f[:i] + 'backends/' + f[i:j] + '_1.h5'
 print(backend_filename)
 backend = emcee.backends.HDFBackend(backend_filename)
 backend.reset(nw, nd)
