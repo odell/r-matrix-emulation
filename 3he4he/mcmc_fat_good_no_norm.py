@@ -14,7 +14,7 @@ import dill as pickle
 
 import model
 import priors
-from bayes import Model4
+from bayes import Model5
 
 emu_filename = sys.argv[1]
 
@@ -25,7 +25,7 @@ with open(emu_filename, 'rb') as o:
     emu = pickle.load(o)
 
 
-bayes_model = Model4(emu)
+bayes_model = Model5(emu)
 
 theta_star = np.load('datfiles/theta_star.npy')[:16]
 nd = theta_star.size
@@ -38,7 +38,7 @@ p0 = np.array(
 f = emu_filename
 i = f.find('/') + 1
 j = f.find('.pkl')
-backend_filename = f[:i] + 'backends/' + f[i:j] + '_no_norm_1.h5'
+backend_filename = f[:i] + 'backends/' + f[i:j] + '_no_norm_Model5.h5'
 print(backend_filename)
 backend = emcee.backends.HDFBackend(backend_filename)
 backend.reset(nw, nd)

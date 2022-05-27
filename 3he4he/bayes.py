@@ -218,13 +218,16 @@ class Model5(Model4):
     priors = [stats.gaussian_kde(x) for x in design_chain.T]
 
     def ln_prior(self, theta):
-        return np.sum([pi.logpdf(x) for (pi, x) in zip(self.priors,
-            self.design_chain)])
+        return np.sum([pi.logpdf(x) for (pi, x) in zip(self.priors, theta)])
 
 
     def ln_posterior(self, theta):
         lnpi = self.ln_prior(theta)
-        if lnpi == -np.inf:
+        if np.isinf(lnpi):
             return -np.inf
         else:
-            return lnpi + self.ln_likelihood(theta)
+            lnl = self.ln_likelihood(theta)
+            if np.isnan(lnl) or np.isinf(lnl):
+                return -np.inf
+            else:
+                return lnpi + lnl
